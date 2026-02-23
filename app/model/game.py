@@ -1,7 +1,7 @@
 from typing import final, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, DateTime, ForeignKey
-from datetime import datetime
+from datetime import datetime, timezone
 from engine import Base
 from uuid import UUID
 import uuid
@@ -20,8 +20,8 @@ class Game(Base):
     status: Mapped[str] = mapped_column(String(20), default="ongoing", nullable=False)  # ongoing, won, draw
     winner: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)  # X, O, or None
     board_state: Mapped[str] = mapped_column(String(9), default="---------", nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     player_x = relationship("User", foreign_keys=[player_x_id], back_populates="games_as_x")

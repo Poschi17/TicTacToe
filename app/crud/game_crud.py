@@ -4,7 +4,7 @@ CRUD operations for Game model.
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from model.game import Game
 
 
@@ -131,7 +131,7 @@ def update_game_board(
     game.current_player = current_player
     game.status = status
     game.winner = winner
-    game.updated_at = datetime.utcnow()
+    game.updated_at = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(game)
