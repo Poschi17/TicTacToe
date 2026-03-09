@@ -3,14 +3,9 @@ from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from engine.base import Base
+from engine import Base
 from crud import move_crud, game_crud, user_crud
-from services.game_service import GameService
-
-# Ensure models are registered
-import model.user  # noqa: F401
-import model.game  # noqa: F401
-import model.move  # noqa: F401
+from services import GameService
 
 
 @pytest.fixture()

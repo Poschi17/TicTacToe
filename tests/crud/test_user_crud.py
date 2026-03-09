@@ -3,11 +3,8 @@ from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from engine.base import Base
+from engine import Base
 from crud import user_crud
-
-# Ensure model metadata is registered
-import model.user  # noqa: F401
 
 
 @pytest.fixture()

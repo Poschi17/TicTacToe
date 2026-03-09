@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from engine.base import Base
+from engine import Base
 from crud import game_crud
-from services.game_service import GameService
+from services import GameService
 
 
 @pytest.fixture()

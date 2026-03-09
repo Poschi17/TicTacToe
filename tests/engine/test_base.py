@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase
 
-from engine.base import Base
+from engine import Base
 
 
 def test_base_is_declarative_base():

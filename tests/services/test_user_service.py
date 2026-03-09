@@ -4,13 +4,10 @@ from sqlalchemy.orm import sessionmaker
 from datetime import timedelta
 from uuid import uuid4
 
-from engine.base import Base
-from services.user_service import UserService
-from schema.userDto import UserCreate
+from engine import Base
+from services import UserService
+from schema import UserCreate
 from crud import user_crud
-
-# Ensure model metadata is registered
-import model.user  # noqa: F401
 
 
 @pytest.fixture()

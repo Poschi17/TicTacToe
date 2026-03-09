@@ -2,8 +2,8 @@ import pytest
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from schema.gameDto import GameResponse, GameUpdate, BoardDisplay, GameWithMoves
-from schema.moveDto import MoveResponse
+from schema import GameResponse, GameUpdate, BoardDisplay, GameWithMoves
+from schema import MoveResponse
 
 
 def test_game_response_happy_path():

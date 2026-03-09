@@ -1,6 +1,6 @@
 import pytest
 
-from services.game_service import GameService
+from services import GameService
 
 
 def test_check_winner_rows():

@@ -2,14 +2,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from engine.base import Base
+from engine import Base
 from crud import game_crud, user_crud
-from services.move_service import MoveService
-
-# Ensure models are registered with SQLAlchemy metadata
-import model.user
-import model.game
-import model.move
+from services import MoveService
 
 
 @pytest.fixture()

@@ -2,7 +2,7 @@ import pytest
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from schema.userDto import UserCreate, UserLogin, UserResponse, UserUpdate, Token, TokenData
+from schema import UserCreate, UserLogin, UserResponse, UserUpdate, Token, TokenData
 
 
 def test_user_create_happy_path():

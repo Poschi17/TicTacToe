@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from engine.base import Base
+from engine import Base
 from crud import user_crud
 
 
