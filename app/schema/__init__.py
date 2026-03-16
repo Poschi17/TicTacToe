@@ -12,7 +12,6 @@ from schema.userDto import (
 )
 from schema.gameDto import (
     GameBase,
-    GameCreate,
     GameResponse,
     GameWithMoves,
     GameUpdate,
@@ -36,7 +35,6 @@ __all__ = [
     "TokenData",
     # Game schemas
     "GameBase",
-    "GameCreate",
     "GameResponse",
     "GameWithMoves",
     "GameUpdate",

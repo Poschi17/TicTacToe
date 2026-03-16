@@ -8,11 +8,12 @@ from typing import List, Optional
 from uuid import UUID
 
 from engine import get_db
-from schema.gameDto import GameCreate, GameResponse, GameWithMoves, BoardDisplay
+from schema.gameDto import GameResponse, GameWithMoves, BoardDisplay
 from schema.moveDto import MoveResponse
 from model.user import User
 from crud import game_crud, move_crud
 from services.move_service import move_service
+from services.game_service import game_service, GameValidationError, GameNotFoundError
 from api.auth import get_current_user_dependency
 
 router = APIRouter(
@@ -23,42 +24,65 @@ router = APIRouter(
 
 @router.post("", response_model=GameResponse, status_code=status.HTTP_201_CREATED)
 def create_game(
-    game_data: GameCreate,
     current_user: User = Depends(get_current_user_dependency),
     db: Session = Depends(get_db)
 ):
     """
     Create a new TicTacToe game.
     
-    - **player_x_id**: Optional UUID of Player X (defaults to current user)
-    - **player_o_id**: Optional UUID of Player O (can be set later or remain anonymous)
-    
-    The game starts with Player X's turn.
+    Creates a game for the authenticated user as Player X.
+    Player O stays empty until another user joins via join endpoint.
     """
-    # Default player_x to current user if not specified
-    player_x_id = game_data.player_x_id if game_data.player_x_id else current_user.id
-    player_o_id = game_data.player_o_id
-    
-    # Create the game
-    game = game_crud.create_game(
-        db=db,
-        player_x_id=player_x_id,
-        player_o_id=player_o_id
-    )
-    
-    return game
+    return game_service.create_game_for_user(db=db, user_id=current_user.id)
+
+
+@router.post("/{game_id}/join", response_model=GameWithMoves)
+def join_game(
+    game_id: UUID,
+    current_user: User = Depends(get_current_user_dependency),
+    db: Session = Depends(get_db)
+):
+    """
+    Join an existing game as Player O.
+
+    Rules:
+    - Game must exist
+    - Player O slot must be empty
+    - Player X cannot join their own game as Player O
+    """
+    try:
+        game = game_service.join_game_as_player_o(
+            db=db,
+            game_id=game_id,
+            user_id=current_user.id
+        )
+    except GameNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except GameValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    moves = move_crud.get_moves_by_game(db, game.id)
+    game_dict = GameResponse.model_validate(game).model_dump()
+    game_dict['moves'] = moves
+    return GameWithMoves(**game_dict)
 
 
 @router.get("", response_model=List[GameWithMoves])
 def get_all_games(
-    status: Optional[str] = Query(None, pattern="^(ongoing|won|draw)$", description="Filter by game status"),
+    status: Optional[str] = Query(None, pattern="^(waiting|ongoing|won|draw)$", description="Filter by game status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
 ):
     """
     Retrieve a list of all games with move histories and statuses.
     
-    - **status**: Optional filter by game status (ongoing, won, draw)
+    - **status**: Optional filter by game status (waiting, ongoing, won, draw)
     
     Returns games with complete move histories.
     """
@@ -159,7 +183,7 @@ def make_move(
     
     **Errors:**
     - 404: Game not found
-    - 400: Invalid move (position occupied, out of bounds, wrong turn, game finished)
+    - 400: Invalid move (waiting for second player, position occupied, out of bounds, wrong turn, game finished)
     """
     # Validate position
     if not 1 <= position <= 9:

@@ -11,7 +11,8 @@ from model.game import Game
 def create_game(
     db: Session,
     player_x_id: Optional[UUID] = None,
-    player_o_id: Optional[UUID] = None
+    player_o_id: Optional[UUID] = None,
+    status: str = "ongoing"
 ) -> Game:
     """
     Create a new game.
@@ -20,6 +21,7 @@ def create_game(
         db: Database session
         player_x_id: Optional UUID of player X
         player_o_id: Optional UUID of player O
+        status: Initial game status
     
     Returns:
         Created Game object
@@ -28,7 +30,7 @@ def create_game(
         player_x_id=player_x_id,
         player_o_id=player_o_id,
         current_player="X",
-        status="ongoing",
+        status=status,
         board_state="---------"
     )
     db.add(db_game)

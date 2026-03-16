@@ -91,7 +91,8 @@ The API will be available at:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/games` | Create a new game |
+| POST | `/games` | Create a new game (current user becomes Player X, Player O stays empty) |
+| POST | `/games/{game_id}/join` | Join a game as Player O |
 | GET | `/games` | Get all games with move histories |
 | GET | `/games/{game_id}` | Get specific game details |
 | GET | `/games/{game_id}/board` | Get visual board representation |
@@ -99,6 +100,13 @@ The API will be available at:
 | DELETE | `/games/{game_id}` | Delete a game |
 | DELETE | `/games/completed/all` | Delete all completed games |
 | GET | `/games/user/me` | Get current user's games |
+
+Game status values used by the API are: `waiting`, `ongoing`, `won`, `draw`.
+
+- `waiting`: Game was created by Player X, but no Player O has joined yet.
+- `ongoing`: Both players are set and moves can be played.
+- `won`: The game finished with a winner (`X` or `O`).
+- `draw`: The board is full and no player has a winning line.
 
 ## Game Flow Example
 
@@ -130,7 +138,7 @@ Response:
 }
 ```
 
-### 3. Create Game
+### 3. Create Game (Player X)
 
 ```bash
 curl -X POST "http://localhost:8000/games" \
@@ -139,7 +147,29 @@ curl -X POST "http://localhost:8000/games" \
   -d '{}'
 ```
 
-### 4. Make Move
+Response contains `player_x_id` set to the authenticated user and `player_o_id` as `null`.
+
+### 4. Login as Second User (Player O)
+
+```bash
+curl -X POST "http://localhost:8000/auth/login" \
+  -F "username=player2" \
+  -F "password=password123"
+```
+
+### 5. Join Game as Player O
+
+```bash
+curl -X POST "http://localhost:8000/games/{game_id}/join" \
+  -H "Authorization: Bearer <player2_token>"
+```
+
+Join rules:
+- Game must exist
+- Player O slot must be empty
+- Player X cannot join their own game as Player O
+
+### 6. Make Move
 
 ```bash
 curl -X PUT "http://localhost:8000/games/{game_id}/move/5" \

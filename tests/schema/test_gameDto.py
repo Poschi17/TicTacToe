@@ -27,10 +27,11 @@ def test_game_update_valid_fields():
 	update = GameUpdate(
 		board_state="X--------",
 		current_player="O",
-		status="ongoing",
+		status="waiting",
 		winner=None
 	)
 	assert update.current_player == "O"
+	assert update.status == "waiting"
 
 
 def test_game_update_invalid_status():

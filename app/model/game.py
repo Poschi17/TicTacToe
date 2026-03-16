@@ -17,7 +17,7 @@ class Game(Base):
     player_x_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("users.id"), nullable=True)
     player_o_id: Mapped[Optional[UUID]] = mapped_column(ForeignKey("users.id"), nullable=True)
     current_player: Mapped[str] = mapped_column(String(1), default="X", nullable=False)
-    status: Mapped[str] = mapped_column(String(20), default="ongoing", nullable=False)  # ongoing, won, draw
+    status: Mapped[str] = mapped_column(String(20), default="ongoing", nullable=False)  # waiting, ongoing, won, draw
     winner: Mapped[Optional[str]] = mapped_column(String(1), nullable=True)  # X, O, or None
     board_state: Mapped[str] = mapped_column(String(9), default="---------", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

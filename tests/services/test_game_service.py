@@ -1,6 +1,12 @@
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from uuid import UUID
 
 from services import GameService
+from services.game_service import GameValidationError, GameNotFoundError
+from engine import Base
+from crud import user_crud, game_crud
 
 
 def test_check_winner_rows():
@@ -98,3 +104,73 @@ def test_display_board_format():
 def test_get_available_positions():
 	board = "XOX-O----"
 	assert GameService.get_available_positions(board) == [4, 6, 7, 8, 9]
+
+
+@pytest.fixture()
+def db_session():
+	engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+	Base.metadata.create_all(bind=engine)
+	SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+	db = SessionLocal()
+	try:
+		yield db
+	finally:
+		db.close()
+
+
+def test_create_game_for_user_sets_player_x_and_open_player_o(db_session):
+	user = user_crud.create_user(db_session, "x_user", "x_user@example.com", "secret123")
+	game = GameService.create_game_for_user(db_session, user.id)
+
+	assert game.player_x_id == user.id
+	assert game.player_o_id is None
+	assert game.status == "waiting"
+
+
+def test_join_game_as_player_o_happy_path(db_session):
+	user_x = user_crud.create_user(db_session, "join_x", "join_x@example.com", "secret123")
+	user_o = user_crud.create_user(db_session, "join_o", "join_o@example.com", "secret123")
+	game = game_crud.create_game(db_session, player_x_id=user_x.id, player_o_id=None, status="waiting")
+
+	joined = GameService.join_game_as_player_o(db_session, game.id, user_o.id)
+
+	assert joined.player_o_id == user_o.id
+	assert joined.status == "ongoing"
+
+
+def test_join_game_as_player_o_rejects_own_game(db_session):
+	user_x = user_crud.create_user(db_session, "self_x", "self_x@example.com", "secret123")
+	game = game_crud.create_game(db_session, player_x_id=user_x.id, player_o_id=None, status="waiting")
+
+	with pytest.raises(GameValidationError):
+		GameService.join_game_as_player_o(db_session, game.id, user_x.id)
+
+
+def test_join_game_as_player_o_rejects_when_slot_taken(db_session):
+	user_x = user_crud.create_user(db_session, "taken_x", "taken_x@example.com", "secret123")
+	user_o = user_crud.create_user(db_session, "taken_o", "taken_o@example.com", "secret123")
+	other_user = user_crud.create_user(db_session, "taken_other", "taken_other@example.com", "secret123")
+	game = game_crud.create_game(db_session, player_x_id=user_x.id, player_o_id=user_o.id, status="ongoing")
+
+	with pytest.raises(GameValidationError):
+		GameService.join_game_as_player_o(db_session, game.id, other_user.id)
+
+
+def test_join_game_as_player_o_missing_game(db_session):
+	user_o = user_crud.create_user(db_session, "missing_o", "missing_o@example.com", "secret123")
+
+	with pytest.raises(GameNotFoundError):
+		GameService.join_game_as_player_o(
+			db_session,
+			UUID("00000000-0000-0000-0000-000000000000"),
+			user_o.id
+		)
+
+
+def test_join_game_as_player_o_rejects_non_waiting_status(db_session):
+	user_x = user_crud.create_user(db_session, "status_x", "status_x@example.com", "secret123")
+	user_o = user_crud.create_user(db_session, "status_o", "status_o@example.com", "secret123")
+	game = game_crud.create_game(db_session, player_x_id=user_x.id, player_o_id=None, status="ongoing")
+
+	with pytest.raises(GameValidationError):
+		GameService.join_game_as_player_o(db_session, game.id, user_o.id)

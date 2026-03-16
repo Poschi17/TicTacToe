@@ -12,11 +12,6 @@ class GameBase(BaseModel):
     pass
 
 
-class GameCreate(BaseModel):
-    """Schema for creating a new game."""
-    player_x_id: Optional[UUID] = Field(None, description="Player X UUID (optional for anonymous games)")
-    player_o_id: Optional[UUID] = Field(None, description="Player O UUID (optional for anonymous games)")
-
 
 class GameResponse(BaseModel):
     """Schema for game response."""
@@ -24,7 +19,7 @@ class GameResponse(BaseModel):
     player_x_id: Optional[UUID]
     player_o_id: Optional[UUID]
     current_player: str = Field(..., description="Current player (X or O)")
-    status: str = Field(..., description="Game status: ongoing, won, draw")
+    status: str = Field(..., description="Game status: waiting, ongoing, won, draw")
     winner: Optional[str] = Field(None, description="Winner (X or O) if game is won")
     board_state: str = Field(..., description="Board state as 9-character string")
     created_at: datetime
@@ -42,7 +37,7 @@ class GameUpdate(BaseModel):
     """Schema for updating a game."""
     board_state: Optional[str] = Field(None, min_length=9, max_length=9)
     current_player: Optional[str] = Field(None, pattern="^[XO]$")
-    status: Optional[str] = Field(None, pattern="^(ongoing|won|draw)$")
+    status: Optional[str] = Field(None, pattern="^(waiting|ongoing|won|draw)$")
     winner: Optional[str] = Field(None, pattern="^[XO]$")
 
 

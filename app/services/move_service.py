@@ -32,6 +32,10 @@ class MoveService:
         Returns:
             Error message if invalid, None if valid
         """
+        # Waiting games cannot start until a second player joins.
+        if game.status == 'waiting':
+            return "Game is waiting for a second player to join"
+
         # Check if game is ongoing
         if game.status != 'ongoing':
             return f"Game is already finished with status: {game.status}"

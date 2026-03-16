@@ -40,6 +40,13 @@ def test_validate_move_game_finished(users_and_game):
 	assert error == "Game is already finished with status: won"
 
 
+def test_validate_move_waiting_for_second_player(users_and_game):
+	user_x, _, game = users_and_game
+	game.status = "waiting"
+	error = MoveService.validate_move(game, position=1, player_id=user_x.id)
+	assert error == "Game is waiting for a second player to join"
+
+
 def test_validate_move_out_of_bounds(users_and_game):
 	user_x, _, game = users_and_game
 	error = MoveService.validate_move(game, position=10, player_id=user_x.id)

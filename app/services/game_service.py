@@ -2,12 +2,64 @@
 Business logic service for Game operations.
 Contains TicTacToe game logic (win conditions, draw detection, etc.)
 """
+from sqlalchemy.orm import Session
 from typing import Optional, Tuple, List
 from uuid import UUID
+
+from model.game import Game
+from crud import game_crud
+
+
+class GameValidationError(ValueError):
+    """Raised when game create/join constraints are violated."""
+
+
+class GameNotFoundError(GameValidationError):
+    """Raised when a requested game does not exist."""
 
 
 class GameService:
     """Service class containing TicTacToe game logic."""
+
+    @staticmethod
+    def create_game_for_user(db: Session, user_id: UUID) -> Game:
+        """
+        Create a new game with the authenticated user as Player X.
+        Player O remains empty until another user joins.
+        """
+        return game_crud.create_game(
+            db=db,
+            player_x_id=user_id,
+            player_o_id=None,
+            status="waiting"
+        )
+
+    @staticmethod
+    def join_game_as_player_o(db: Session, game_id: UUID, user_id: UUID) -> Game:
+        """
+        Join an existing game as Player O.
+
+        Raises:
+            GameValidationError: If game cannot be joined.
+        """
+        game = game_crud.get_game_by_id(db, game_id)
+        if not game:
+            raise GameNotFoundError(f"Game with id {game_id} not found")
+
+        if game.player_o_id is not None:
+            raise GameValidationError("Game already has a Player O")
+
+        if game.player_x_id == user_id:
+            raise GameValidationError("You cannot join your own game as Player O")
+
+        if game.status != "waiting":
+            raise GameValidationError(f"Game cannot be joined in status: {game.status}")
+
+        game.player_o_id = user_id
+        game.status = "ongoing"
+        db.commit()
+        db.refresh(game)
+        return game
     
     # Win patterns (indices in board_state string)
     WIN_PATTERNS = [
