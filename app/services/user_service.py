@@ -11,11 +11,13 @@ from jose import JWTError, jwt
 from model.user import User
 from crud import user_crud
 from schema.userDto import UserCreate, TokenData
+from config import env_str, env_int
+
 
 # JWT Configuration
-SECRET_KEY = "your-secret-key-change-this-in-production"  # CHANGE THIS IN PRODUCTION!
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = env_str("SECRET_KEY", "your-secret-key-change-this-in-production")  # CHANGE THIS IN PRODUCTION!
+ALGORITHM = env_str("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
 
 
 class UserService:

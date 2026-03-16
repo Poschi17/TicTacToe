@@ -10,6 +10,7 @@ import textwrap
 
 from engine import init_db
 from api import auth, games
+from config import env_str, env_int, env_bool, env_list
 
 
 @asynccontextmanager
@@ -80,6 +81,15 @@ app = FastAPI(
     
 )
 
+allowed_origins = env_list("ALLOWED_ORIGINS", ["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Include routers
 app.include_router(auth.router)
 app.include_router(games.router)
@@ -95,8 +105,8 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
+        host=env_str("API_HOST", "0.0.0.0"),
+        port=env_int("API_PORT", 8000),
+        reload=env_bool("DEBUG", True),
+        log_level="debug" if env_bool("DEBUG", True) else "info"
     )

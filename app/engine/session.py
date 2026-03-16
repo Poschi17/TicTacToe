@@ -4,15 +4,17 @@ Database session management and engine configuration.
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
+from config import env_str, env_bool
 
 # Database connection URL
 # Format: postgresql://user:password@host:port/database
-DATABASE_URL = "postgresql://admin:Kennwort1@localhost:5432/tictactoe"
+DATABASE_URL = env_str("DATABASE_URL", "postgresql://admin:Kennwort1@localhost:5432/tictactoe")
+DEBUG = env_bool("DEBUG", True)
 
 # Create the SQLAlchemy engine
 engine = create_engine(
     DATABASE_URL,
-    echo=True,  # Set to False in production
+    echo=DEBUG,
     pool_pre_ping=True,  # Verify connections before using them
     pool_size=5,
     max_overflow=10
