@@ -51,54 +51,48 @@ def get_game_by_id(db: Session, game_id: UUID) -> Optional[Game]:
     return db.query(Game).filter(Game.id == game_id).first()
 
 
-def get_all_games(db: Session, skip: int = 0, limit: int = 100) -> List[Game]:
+def get_all_games(db: Session) -> List[Game]:
     """
-    Get all games with pagination.
+    Get all games.
     
     Args:
         db: Database session
-        skip: Number of records to skip
-        limit: Maximum number of records to return
     
     Returns:
         List of Game objects
     """
-    return db.query(Game).offset(skip).limit(limit).all()
+    return db.query(Game).all()
 
 
-def get_games_by_user(db: Session, user_id: UUID, skip: int = 0, limit: int = 100) -> List[Game]:
+def get_games_by_user(db: Session, user_id: UUID) -> List[Game]:
     """
     Get all games involving a specific user.
     
     Args:
         db: Database session
         user_id: User UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
     
     Returns:
         List of Game objects
     """
     return db.query(Game).filter(
         (Game.player_x_id == user_id) | (Game.player_o_id == user_id)
-    ).offset(skip).limit(limit).all()
+    ).all()
 
 
-def get_ongoing_games(db: Session, skip: int = 0, limit: int = 100) -> List[Game]:
+def get_ongoing_games(db: Session) -> List[Game]:
     """
     Get all ongoing games.
     
     Args:
         db: Database session
-        skip: Number of records to skip
-        limit: Maximum number of records to return
     
     Returns:
         List of ongoing Game objects
     """
     return db.query(Game).filter(
         Game.status == "ongoing"
-    ).offset(skip).limit(limit).all()
+    ).all()
 
 
 def update_game_board(

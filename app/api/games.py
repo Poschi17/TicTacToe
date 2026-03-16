@@ -51,8 +51,6 @@ def create_game(
 
 @router.get("", response_model=List[GameWithMoves])
 def get_all_games(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
     status: Optional[str] = Query(None, pattern="^(ongoing|won|draw)$", description="Filter by game status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_dependency)
@@ -60,16 +58,14 @@ def get_all_games(
     """
     Retrieve a list of all games with move histories and statuses.
     
-    - **skip**: Number of records to skip (pagination)
-    - **limit**: Maximum number of records to return (pagination)
     - **status**: Optional filter by game status (ongoing, won, draw)
     
     Returns games with complete move histories.
     """
     if status == "ongoing":
-        games = game_crud.get_ongoing_games(db, skip, limit)
+        games = game_crud.get_ongoing_games(db)
     else:
-        games = game_crud.get_all_games(db, skip, limit)
+        games = game_crud.get_all_games(db)
         if status:
             games = [g for g in games if g.status == status]
     
@@ -244,20 +240,15 @@ def delete_completed_games(
 
 @router.get("/user/me", response_model=List[GameWithMoves])
 def get_my_games(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
     current_user: User = Depends(get_current_user_dependency),
     db: Session = Depends(get_db)
 ):
     """
     Get all games for the current authenticated user.
     
-    - **skip**: Number of records to skip (pagination)
-    - **limit**: Maximum number of records to return (pagination)
-    
     Returns games where the user is either Player X or Player O.
     """
-    games = game_crud.get_games_by_user(db, current_user.id, skip, limit)
+    games = game_crud.get_games_by_user(db, current_user.id)
     
     # Add moves to each game
     games_with_moves = []

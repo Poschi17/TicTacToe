@@ -69,19 +69,17 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
 
 
-def get_all_users(db: Session, skip: int = 0, limit: int = 100) -> List[User]:
+def get_all_users(db: Session) -> List[User]:
     """
-    Get all users with pagination.
+    Get all users.
     
     Args:
         db: Database session
-        skip: Number of records to skip
-        limit: Maximum number of records to return
     
     Returns:
         List of User objects
     """
-    return db.query(User).offset(skip).limit(limit).all()
+    return db.query(User).all()
 
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:

@@ -58,11 +58,11 @@ def test_get_user_by_email(db_session):
 	assert user.username == "alice"
 
 
-def test_get_all_users_pagination(db_session):
+def test_get_all_users_returns_all_users(db_session):
 	user_crud.create_user(db_session, "alice", "alice@example.com", "secret123")
 	user_crud.create_user(db_session, "bob", "bob@example.com", "secret123")
-	users = user_crud.get_all_users(db_session, skip=0, limit=1)
-	assert len(users) == 1
+	users = user_crud.get_all_users(db_session)
+	assert len(users) == 2
 
 
 def test_authenticate_user_success(db_session):

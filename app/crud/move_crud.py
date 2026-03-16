@@ -71,9 +71,7 @@ def get_moves_by_game(db: Session, game_id: UUID) -> List[Move]:
 
 def get_moves_by_player(
     db: Session,
-    player_id: UUID,
-    skip: int = 0,
-    limit: int = 100
+    player_id: UUID
 ) -> List[Move]:
     """
     Get all moves made by a specific player.
@@ -81,15 +79,13 @@ def get_moves_by_player(
     Args:
         db: Database session
         player_id: Player UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
     
     Returns:
         List of Move objects
     """
     return db.query(Move).filter(
         Move.player_id == player_id
-    ).order_by(Move.created_at.desc()).offset(skip).limit(limit).all()
+    ).order_by(Move.created_at.desc()).all()
 
 
 def get_move_count_by_game(db: Session, game_id: UUID) -> int:
