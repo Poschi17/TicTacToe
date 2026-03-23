@@ -84,17 +84,23 @@ def get_all_users(db: Session) -> List[User]:
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
     """
-    Authenticate a user by username and password.
+    Authenticate a user by username or email and password.
     
     Args:
         db: Database session
-        username: Username
+        username: Username or email
         password: Plain text password
     
     Returns:
         User object if authentication successful, None otherwise
     """
+    # Try to find user by username first
     user = get_user_by_username(db, username)
+    
+    # If not found, try by email
+    if not user:
+        user = get_user_by_email(db, username)
+    
     if not user:
         return None
     if not verify_password(password, user.hashed_password):

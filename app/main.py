@@ -105,7 +105,7 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
-        host=env_str("API_HOST", "0.0.0.0"),
+        host=env_str("API_HOST", "127.0.0.1"),
         port=env_int("API_PORT", 8000),
         reload=env_bool("DEBUG", True),
         log_level="debug" if env_bool("DEBUG", True) else "info"

@@ -67,7 +67,7 @@ def login_user(
     db: Session = Depends(get_db)
 ):
     """
-    Login with username and password.
+    Login with username or email and password.
     
     Returns a JWT access token.
     
