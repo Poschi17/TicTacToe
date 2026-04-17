@@ -4,7 +4,7 @@ CRUD operations for Move model.
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from uuid import UUID
-from model.move import Move
+from app.model.move import Move
 
 
 def create_move(

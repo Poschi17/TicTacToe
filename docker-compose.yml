@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   db:
-    image: postgres
+    image: postgres:latest
     container_name: tictactoe_db
     restart: always
     ports:
@@ -9,10 +9,17 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: Kennwort1
+      POSTGRES_DB: tictactoe
     volumes:
       - local_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   pgadmin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:latest
     container_name: tictactoe_pgadmin
     restart: always
     ports:
@@ -22,6 +29,28 @@ services:
       PGADMIN_DEFAULT_PASSWORD: Kennwort1
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tictactoe_app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DEBUG: "False"
+      DATABASE_URL: postgresql://admin:Kennwort1@db:5432/tictactoe
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: python run.py
 
 volumes:
   local_pgdata:

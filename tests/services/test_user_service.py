@@ -4,10 +4,10 @@ from sqlalchemy.orm import sessionmaker
 from datetime import timedelta
 from uuid import uuid4
 
-from engine import Base
-from services import UserService
-from schema import UserCreate
-from crud import user_crud
+from app.engine import Base
+from app.services import UserService
+from app.schema import UserCreate
+from app.crud import user_crud
 
 
 @pytest.fixture()

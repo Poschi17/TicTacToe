@@ -3,8 +3,8 @@ from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker, Mapped, mapped_column
 from sqlalchemy import String
 
-from engine import Base
-import engine.session as session_module
+from app.engine import Base
+import app.engine.session as session_module
 
 
 @pytest.fixture()

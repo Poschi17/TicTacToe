@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Optional, List
 from uuid import UUID
-from model.user import User
+from app.model.user import User
 import bcrypt
 
 

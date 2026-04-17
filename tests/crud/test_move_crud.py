@@ -3,9 +3,9 @@ from uuid import UUID
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from engine import Base
-from crud import move_crud, game_crud, user_crud
-from services import GameService
+from app.engine import Base
+from app.crud import move_crud, game_crud, user_crud
+from app.services import GameService
 
 
 @pytest.fixture()

@@ -2,7 +2,7 @@ from typing import final
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, DateTime
 from datetime import datetime, timezone
-from engine import Base
+from app.engine import Base
 from uuid import UUID, uuid4
 import uuid
 

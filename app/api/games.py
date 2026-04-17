@@ -7,14 +7,14 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
 
-from engine import get_db
-from schema.gameDto import GameResponse, GameWithMoves, BoardDisplay
-from schema.moveDto import MoveResponse
-from model.user import User
-from crud import game_crud, move_crud
-from services.move_service import move_service
-from services.game_service import game_service, GameValidationError, GameNotFoundError
-from api.auth import get_current_user_dependency
+from app.engine import get_db
+from app.schema.gameDto import GameResponse, GameWithMoves, BoardDisplay
+from app.schema.moveDto import MoveResponse
+from app.model.user import User
+from app.crud import game_crud, move_crud
+from app.services.move_service import move_service
+from app.services.game_service import game_service, GameValidationError, GameNotFoundError
+from app.api.auth import get_current_user_dependency
 
 router = APIRouter(
     prefix="/games",

@@ -8,9 +8,9 @@ from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 import textwrap
 
-from engine import init_db
-from api import auth, games
-from config import env_str, env_int, env_bool, env_list
+from app.engine import init_db
+from app.api import auth, games
+from app.config import env_str, env_int, env_bool, env_list
 
 
 @asynccontextmanager

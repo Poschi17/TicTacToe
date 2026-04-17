@@ -3,10 +3,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from uuid import UUID
 
-from services import GameService
-from services.game_service import GameValidationError, GameNotFoundError
-from engine import Base
-from crud import user_crud, game_crud
+from app.services import GameService
+from app.services.game_service import GameValidationError, GameNotFoundError
+from app.engine import Base
+from app.crud import user_crud, game_crud
 
 
 def test_check_winner_rows():

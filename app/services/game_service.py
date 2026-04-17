@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from typing import Optional, Tuple, List
 from uuid import UUID
 
-from model.game import Game
-from crud import game_crud
+from app.model.game import Game
+from app.crud import game_crud
 
 
 class GameValidationError(ValueError):

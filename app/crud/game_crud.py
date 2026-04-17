@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime, timezone
-from model.game import Game
+from app.model.game import Game
 
 
 def create_game(

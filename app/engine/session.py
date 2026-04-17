@@ -4,7 +4,7 @@ Database session management and engine configuration.
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
-from config import env_str, env_bool
+from app.config import env_str, env_bool
 
 # Database connection URL
 # Format: postgresql://user:password@host:port/database
@@ -50,5 +50,5 @@ def init_db() -> None:
     Initialize the database by creating all tables.
     Should be called on application startup.
     """
-    from engine.base import Base
+    from app.engine.base import Base
     Base.metadata.create_all(bind=engine)

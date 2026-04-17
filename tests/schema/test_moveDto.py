@@ -2,7 +2,7 @@ import pytest
 from uuid import uuid4
 from datetime import datetime, timezone
 
-from schema import MoveResponse, MoveRequest
+from app.schema import MoveResponse, MoveRequest
 
 
 def test_move_response_happy_path():

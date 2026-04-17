@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
 from uuid import UUID
 
-from model.move import Move
-from model.game import Game
-from crud import move_crud, game_crud
-from services.game_service import game_service
+from app.model.move import Move
+from app.model.game import Game
+from app.crud import move_crud, game_crud
+from app.services.game_service import game_service
 
 
 class MoveService:

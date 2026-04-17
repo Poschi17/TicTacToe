@@ -2,8 +2,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from engine import Base
-from crud import user_crud
+from app.engine import Base
+from app.crud import user_crud
 
 
 @pytest.fixture()

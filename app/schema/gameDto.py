@@ -57,5 +57,5 @@ class BoardDisplay(BaseModel):
 
 
 # Import MoveResponse for forward reference
-from schema.moveDto import MoveResponse
+from app.schema.moveDto import MoveResponse
 GameWithMoves.model_rebuild()

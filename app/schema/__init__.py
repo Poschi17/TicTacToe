@@ -1,7 +1,7 @@
 """
 Pydantic schemas (DTOs) package for TicTacToe application.
 """
-from schema.userDto import (
+from app.schema.userDto import (
     UserBase,
     UserCreate,
     UserLogin,
@@ -10,14 +10,14 @@ from schema.userDto import (
     Token,
     TokenData
 )
-from schema.gameDto import (
+from app.schema.gameDto import (
     GameBase,
     GameResponse,
     GameWithMoves,
     GameUpdate,
     BoardDisplay
 )
-from schema.moveDto import (
+from app.schema.moveDto import (
     MoveBase,
     MoveCreate,
     MoveResponse,

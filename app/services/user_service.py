@@ -8,10 +8,10 @@ from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 
-from model.user import User
-from crud import user_crud
-from schema.userDto import UserCreate, TokenData
-from config import env_str, env_int
+from app.model.user import User
+from app.crud import user_crud
+from app.schema.userDto import UserCreate, TokenData
+from app.config import env_str, env_int
 
 
 # JWT Configuration
