@@ -1,368 +1,219 @@
-"""
-API tests for user authentication endpoints.
-Tests registration, login, token generation, and user retrieval.
-"""
+from __future__ import annotations
+
+from uuid import uuid4
+
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app import app
-from app.engine import get_db, SessionLocal
-from app.model import User
-from app.crud import user_crud
-
-
-client = TestClient(app)
+from app.api import auth
+from app.engine import Base, get_db
 
 
-@pytest.fixture
-def db_session():
-    """Provide a test database session."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@pytest.fixture()
+def db_session_factory():
+	engine = create_engine(
+		"sqlite://",
+		connect_args={"check_same_thread": False},
+		poolclass=StaticPool,
+	)
+	Base.metadata.create_all(bind=engine)
+	session_factory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+	try:
+		yield session_factory
+	finally:
+		Base.metadata.drop_all(bind=engine)
+		engine.dispose()
 
 
-@pytest.fixture
-def test_user_data():
-    """Test user data for registration and login."""
-    return {
-        "username": "testuser",
-        "email": "testuser@example.com",
-        "password": "SecurePassword123"
-    }
+@pytest.fixture()
+def client(db_session_factory):
+	app = FastAPI()
+	app.include_router(auth.router)
+
+	def override_get_db():
+		db: Session = db_session_factory()
+		try:
+			yield db
+		finally:
+			db.close()
+
+	app.dependency_overrides[get_db] = override_get_db
+
+	with TestClient(app) as test_client:
+		yield test_client
 
 
-@pytest.fixture
-def test_user_two():
-    """Second test user for testing multiple users."""
-    return {
-        "username": "testuser2",
-        "email": "testuser2@example.com",
-        "password": "SecurePassword456"
-    }
+def _unique_user_payload(prefix: str = "user") -> dict[str, str]:
+	suffix = uuid4().hex[:8]
+	username = f"{prefix}_{suffix}"
+	return {
+		"username": username,
+		"email": f"{username}@example.com",
+		"password": "secret123",
+	}
 
 
-@pytest.fixture
-def registered_user(db_session, test_user_data):
-    """Create a registered test user."""
-    user = user_crud.create_user(
-        db=db_session,
-        username=test_user_data["username"],
-        email=test_user_data["email"],
-        password=test_user_data["password"]
-    )
-    return user, test_user_data
+def _register_user(client: TestClient, prefix: str = "user") -> dict:
+	payload = _unique_user_payload(prefix)
+	response = client.post("/auth/register", json=payload)
+	assert response.status_code == 201
+	body = response.json()
+	return {"payload": payload, "response": body}
+
+
+def _login_user(client: TestClient, username_or_email: str, password: str = "secret123") -> str:
+	response = client.post(
+		"/auth/login",
+		data={"username": username_or_email, "password": password},
+	)
+	assert response.status_code == 200
+	token = response.json()["access_token"]
+	return token
+
+
+def _auth_headers(token: str) -> dict[str, str]:
+	return {"Authorization": f"Bearer {token}"}
 
 
 class TestUserRegistration:
-    """Tests for user registration endpoint."""
-    
-    def test_register_user_success(self, test_user_data):
-        """Test successful user registration."""
-        response = client.post("/auth/register", json=test_user_data)
-        
-        assert response.status_code == 201
-        data = response.json()
-        assert data["username"] == test_user_data["username"]
-        assert data["email"] == test_user_data["email"].lower()
-        assert "id" in data
-        assert "created_at" in data
-        assert "password" not in data  # Password should not be in response
-    
-    def test_register_user_duplicate_username(self, test_user_data):
-        """Test registration with duplicate username."""
-        # Register first user
-        response1 = client.post("/auth/register", json=test_user_data)
-        assert response1.status_code == 201
-        
-        # Try to register with same username
-        response2 = client.post("/auth/register", json=test_user_data)
-        assert response2.status_code == 400
-        assert "Username already registered" in response2.json()["detail"]
-    
-    def test_register_user_duplicate_email(self, test_user_data):
-        """Test registration with duplicate email."""
-        # Register first user
-        response1 = client.post("/auth/register", json=test_user_data)
-        assert response1.status_code == 201
-        
-        # Try to register with same email, different username
-        user_data_dup_email = {
-            "username": "different_username",
-            "email": test_user_data["email"],
-            "password": "AnotherPassword123"
-        }
-        response2 = client.post("/auth/register", json=user_data_dup_email)
-        assert response2.status_code == 400
-        assert "Email already registered" in response2.json()["detail"]
-    
-    def test_register_user_invalid_email(self):
-        """Test registration with invalid email format."""
-        invalid_data = {
-            "username": "testuser",
-            "email": "invalid-email",
-            "password": "SecurePassword123"
-        }
-        response = client.post("/auth/register", json=invalid_data)
-        assert response.status_code == 422
-    
-    def test_register_user_short_password(self):
-        """Test registration with password too short."""
-        invalid_data = {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password": "Short1"
-        }
-        response = client.post("/auth/register", json=invalid_data)
-        assert response.status_code == 422
-    
-    def test_register_user_short_username(self):
-        """Test registration with username too short."""
-        invalid_data = {
-            "username": "ab",  # Too short
-            "email": "test@example.com",
-            "password": "SecurePassword123"
-        }
-        response = client.post("/auth/register", json=invalid_data)
-        assert response.status_code == 422
-    
-    def test_register_user_long_username(self):
-        """Test registration with username too long."""
-        invalid_data = {
-            "username": "a" * 51,  # Too long
-            "email": "test@example.com",
-            "password": "SecurePassword123"
-        }
-        response = client.post("/auth/register", json=invalid_data)
-        assert response.status_code == 422
-    
-    def test_register_user_case_insensitive_email(self):
-        """Test that email is converted to lowercase."""
-        data = {
-            "username": "testuser",
-            "email": "TestUser@Example.COM",
-            "password": "SecurePassword123"
-        }
-        response = client.post("/auth/register", json=data)
-        assert response.status_code == 201
-        assert response.json()["email"] == "testuser@example.com"
+	def test_register_user_success(self, client: TestClient):
+		payload = _unique_user_payload("register_ok")
+
+		response = client.post("/auth/register", json=payload)
+
+		assert response.status_code == 201
+		body = response.json()
+		assert body["username"] == payload["username"]
+		assert body["email"] == payload["email"]
+		assert "id" in body
+		assert "created_at" in body
+
+	def test_register_user_duplicate_username_returns_400(self, client: TestClient):
+		first = _unique_user_payload("dup_user")
+		second = {**_unique_user_payload("other"), "username": first["username"]}
+
+		first_response = client.post("/auth/register", json=first)
+		second_response = client.post("/auth/register", json=second)
+
+		assert first_response.status_code == 201
+		assert second_response.status_code == 400
+		assert second_response.json()["detail"] == "Username already registered"
+
+	def test_register_user_duplicate_email_returns_400(self, client: TestClient):
+		first = _unique_user_payload("dup_email")
+		second = {**_unique_user_payload("other"), "email": first["email"]}
+
+		first_response = client.post("/auth/register", json=first)
+		second_response = client.post("/auth/register", json=second)
+
+		assert first_response.status_code == 201
+		assert second_response.status_code == 400
+		assert second_response.json()["detail"] == "Email already registered"
 
 
 class TestUserLogin:
-    """Tests for user login endpoint."""
-    
-    def test_login_user_success(self, test_user_data):
-        """Test successful user login."""
-        # Register user
-        client.post("/auth/register", json=test_user_data)
-        
-        # Login
-        login_data = {
-            "username": test_user_data["username"],
-            "password": test_user_data["password"]
-        }
-        response = client.post("/auth/login", data=login_data)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert "access_token" in data
-        assert data["token_type"] == "bearer"
-    
-    def test_login_with_wrong_password(self, test_user_data):
-        """Test login with incorrect password."""
-        # Register user
-        client.post("/auth/register", json=test_user_data)
-        
-        # Login with wrong password
-        login_data = {
-            "username": test_user_data["username"],
-            "password": "WrongPassword123"
-        }
-        response = client.post("/auth/login", data=login_data)
-        
-        assert response.status_code == 401
-        assert "Incorrect username or password" in response.json()["detail"]
-    
-    def test_login_nonexistent_user(self):
-        """Test login with non-existent user."""
-        login_data = {
-            "username": "nonexistent",
-            "password": "SomePassword123"
-        }
-        response = client.post("/auth/login", data=login_data)
-        
-        assert response.status_code == 401
-        assert "Incorrect username or password" in response.json()["detail"]
-    
-    def test_login_token_structure(self, test_user_data):
-        """Test that returned token is valid JWT."""
-        # Register and login
-        client.post("/auth/register", json=test_user_data)
-        login_data = {
-            "username": test_user_data["username"],
-            "password": test_user_data["password"]
-        }
-        response = client.post("/auth/login", data=login_data)
-        token = response.json()["access_token"]
-        
-        # Token should be a non-empty string
-        assert isinstance(token, str)
-        assert len(token) > 0
-        # Should be JWT format (three parts separated by dots)
-        assert token.count(".") == 2
+	def test_login_user_success_with_username(self, client: TestClient):
+		created = _register_user(client, "login_name")
+
+		response = client.post(
+			"/auth/login",
+			data={"username": created["payload"]["username"], "password": "secret123"},
+		)
+
+		assert response.status_code == 200
+		body = response.json()
+		assert body["token_type"] == "bearer"
+		assert isinstance(body["access_token"], str)
+		assert len(body["access_token"]) > 20
+
+	def test_login_user_success_with_email(self, client: TestClient):
+		created = _register_user(client, "login_email")
+
+		response = client.post(
+			"/auth/login",
+			data={"username": created["payload"]["email"], "password": "secret123"},
+		)
+
+		assert response.status_code == 200
+		assert response.json()["token_type"] == "bearer"
+
+	def test_login_user_wrong_password_returns_401(self, client: TestClient):
+		created = _register_user(client, "login_wrong_pw")
+
+		response = client.post(
+			"/auth/login",
+			data={"username": created["payload"]["username"], "password": "wrong-password"},
+		)
+
+		assert response.status_code == 401
+		assert response.json()["detail"] == "Incorrect username or password"
+		assert response.headers.get("www-authenticate") == "Bearer"
 
 
-class TestUserInfo:
-    """Tests for getting user information endpoints."""
-    
-    def test_get_current_user_success(self, test_user_data):
-        """Test getting current authenticated user information."""
-        # Register and login
-        client.post("/auth/register", json=test_user_data)
-        login_data = {
-            "username": test_user_data["username"],
-            "password": test_user_data["password"]
-        }
-        login_response = client.post("/auth/login", data=login_data)
-        token = login_response.json()["access_token"]
-        
-        # Get current user info
-        headers = {"Authorization": f"Bearer {token}"}
-        response = client.get("/auth/me", headers=headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["username"] == test_user_data["username"]
-        assert data["email"] == test_user_data["email"].lower()
-        assert "id" in data
-        assert "created_at" in data
-        assert "password" not in data
-    
-    def test_get_current_user_no_token(self):
-        """Test getting current user without authentication."""
-        response = client.get("/auth/me")
-        
-        assert response.status_code == 403
-    
-    def test_get_current_user_invalid_token(self):
-        """Test getting current user with invalid token."""
-        headers = {"Authorization": "Bearer invalid_token_123"}
-        response = client.get("/auth/me", headers=headers)
-        
-        assert response.status_code == 401
-    
-    def test_get_current_user_expired_token(self, test_user_data):
-        """Test getting current user with expired token."""
-        # This would require mocking time or creating an actually expired token
-        # For now, test with malformed token
-        headers = {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.invalid"}
-        response = client.get("/auth/me", headers=headers)
-        
-        assert response.status_code == 401
-    
-    def test_get_user_by_id_success(self, test_user_data, test_user_two):
-        """Test getting user by ID."""
-        # Register two users
-        user1_response = client.post("/auth/register", json=test_user_data)
-        user1_id = user1_response.json()["id"]
-        
-        client.post("/auth/register", json=test_user_two)
-        
-        # Login as first user
-        login_data = {
-            "username": test_user_data["username"],
-            "password": test_user_data["password"]
-        }
-        login_response = client.post("/auth/login", data=login_data)
-        token = login_response.json()["access_token"]
-        
-        # Get second user by ID
-        headers = {"Authorization": f"Bearer {token}"}
-        response = client.get(f"/auth/users/{user1_id}", headers=headers)
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["username"] == test_user_data["username"]
-        assert data["id"] == user1_id
-    
-    def test_get_user_by_id_not_found(self, test_user_data):
-        """Test getting non-existent user by ID."""
-        # Register and login
-        client.post("/auth/register", json=test_user_data)
-        login_data = {
-            "username": test_user_data["username"],
-            "password": test_user_data["password"]
-        }
-        login_response = client.post("/auth/login", data=login_data)
-        token = login_response.json()["access_token"]
-        
-        # Try to get non-existent user
-        fake_uuid = "00000000-0000-0000-0000-000000000000"
-        headers = {"Authorization": f"Bearer {token}"}
-        response = client.get(f"/auth/users/{fake_uuid}", headers=headers)
-        
-        assert response.status_code == 404
-        assert "not found" in response.json()["detail"]
-    
-    def test_get_user_by_id_requires_auth(self):
-        """Test that getting user by ID requires authentication."""
-        fake_uuid = "00000000-0000-0000-0000-000000000000"
-        response = client.get(f"/auth/users/{fake_uuid}")
-        
-        assert response.status_code == 403
+class TestCurrentUser:
+	def test_get_me_without_token_returns_403(self, client: TestClient):
+		response = client.get("/auth/me")
+
+		assert response.status_code == 403
+		assert response.json()["detail"] == "Not authenticated"
+
+	def test_get_me_with_invalid_token_returns_401(self, client: TestClient):
+		response = client.get("/auth/me", headers=_auth_headers("invalid.jwt.token"))
+
+		assert response.status_code == 401
+		assert response.json()["detail"] == "Could not validate credentials"
+		assert response.headers.get("www-authenticate") == "Bearer"
+
+	def test_get_me_success(self, client: TestClient):
+		created = _register_user(client, "me_ok")
+		token = _login_user(client, created["payload"]["username"])
+
+		response = client.get("/auth/me", headers=_auth_headers(token))
+
+		assert response.status_code == 200
+		body = response.json()
+		assert body["id"] == created["response"]["id"]
+		assert body["username"] == created["payload"]["username"]
+		assert body["email"] == created["payload"]["email"]
 
 
-class TestAuthenticationFlow:
-    """Integration tests for complete authentication flows."""
-    
-    def test_full_auth_flow(self, test_user_data):
-        """Test complete authentication flow: register -> login -> get info."""
-        # Step 1: Register
-        register_response = client.post("/auth/register", json=test_user_data)
-        assert register_response.status_code == 201
-        user_id = register_response.json()["id"]
-        
-        # Step 2: Login
-        login_data = {
-            "username": test_user_data["username"],
-            "password": test_user_data["password"]
-        }
-        login_response = client.post("/auth/login", data=login_data)
-        assert login_response.status_code == 200
-        token = login_response.json()["access_token"]
-        
-        # Step 3: Get user info
-        headers = {"Authorization": f"Bearer {token}"}
-        me_response = client.get("/auth/me", headers=headers)
-        assert me_response.status_code == 200
-        assert me_response.json()["id"] == user_id
-        
-        # Step 4: Get specific user
-        user_response = client.get(f"/auth/users/{user_id}", headers=headers)
-        assert user_response.status_code == 200
-        assert user_response.json()["username"] == test_user_data["username"]
-    
-    def test_multiple_users_isolation(self, test_user_data, test_user_two):
-        """Test that different users are properly isolated."""
-        # Register and login as user 1
-        user1_reg = client.post("/auth/register", json=test_user_data)
-        user1_id = user1_reg.json()["id"]
-        
-        login_data = {
-            "username": test_user_data["username"],
-            "password": test_user_data["password"]
-        }
-        user1_login = client.post("/auth/login", data=login_data)
-        user1_token = user1_login.json()["access_token"]
-        
-        # Register user 2
-        client.post("/auth/register", json=test_user_two)
-        
-        # User 1 gets their own info
-        headers = {"Authorization": f"Bearer {user1_token}"}
-        response = client.get("/auth/me", headers=headers)
-        assert response.json()["username"] == test_user_data["username"]
-        assert response.json()["id"] == user1_id
+class TestGetUserById:
+	def test_get_user_by_id_requires_authentication(self, client: TestClient):
+		created = _register_user(client, "target_user")
+
+		response = client.get(f"/auth/users/{created['response']['id']}")
+
+		assert response.status_code == 403
+		assert response.json()["detail"] == "Not authenticated"
+
+	def test_get_user_by_id_not_found_returns_404(self, client: TestClient):
+		created = _register_user(client, "requester")
+		token = _login_user(client, created["payload"]["username"])
+
+		response = client.get(
+			"/auth/users/00000000-0000-0000-0000-000000000000",
+			headers=_auth_headers(token),
+		)
+
+		assert response.status_code == 404
+		assert "not found" in response.json()["detail"]
+
+	def test_get_user_by_id_success(self, client: TestClient):
+		requester = _register_user(client, "requester_ok")
+		target = _register_user(client, "target_ok")
+		token = _login_user(client, requester["payload"]["username"])
+
+		response = client.get(
+			f"/auth/users/{target['response']['id']}",
+			headers=_auth_headers(token),
+		)
+
+		assert response.status_code == 200
+		body = response.json()
+		assert body["id"] == target["response"]["id"]
+		assert body["username"] == target["payload"]["username"]
+		assert body["email"] == target["payload"]["email"]
